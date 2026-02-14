@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import TopBar from "./components/TopBar"
 import IncomeCard from "./components/IncomeCard"
 import InvestmentCard from "./components/InvestmentCard"
@@ -7,8 +7,13 @@ import InstallmentsCard from "./components/InstallmentsCard"
 import FixedExpensesCard from "./components/FixedExpensesCard"
 import CreditLimitBasedOnIncome from "./components/CreditLimitBasedOnIncome"
 import SummaryCard from "./components/SummaryCard"
+import { supabase } from "./lib/supabase"
+import { useAuth } from "./context/AuthContext"
+import Login from "./pages/Login"
 
 function App() {
+
+  const { user, loading } = useAuth()
 
   const [income, setIncome] = useState(0)
   const [investment, setInvestment] = useState(0)
@@ -16,36 +21,75 @@ function App() {
   const [cardLimit, setCardLimit] = useState(0)
   const [fixedExpenses, setFixedExpenses] = useState([])
 
-  // 🔹 Carregar dados salvos
+  const [isLoaded, setIsLoaded] = useState(false)
+  const isFirstRender = useRef(true)
+
+  // 🔹 Buscar dados do usuário
   useEffect(() => {
-    const savedData = localStorage.getItem("financeData")
+    if (!user) return
 
-    if (savedData) {
-      const parsed = JSON.parse(savedData)
+    async function fetchData() {
+      const { data, error } = await supabase
+        .from("finance_data")
+        .select("*")
+        .eq("user_id", user.id)
 
-      setIncome(parsed.income || 0)
-      setInvestment(parsed.investment || 0)
-      setInstallments(parsed.installments || [])
-      setCardLimit(parsed.cardLimit || 0)
-      setFixedExpenses(parsed.fixedExpenses || [])
+      if (error && error.code !== "PGRST116") {
+        console.log("ERRO BUSCAR:", error)
+        return
+      }
+
+      if (data && data.length > 0) {
+        const finance = data[0]
+
+        setIncome(finance.income || 0)
+        setInvestment(finance.investment || 0)
+        setInstallments(finance.installments || [])
+        setFixedExpenses(finance.fixed_expenses || [])
+        setCardLimit(finance.card_limit || 0)
+      }
+
+
+      setIsLoaded(true)
     }
-  }, [])
 
-  // 🔹 Salvar sempre que mudar
+    fetchData()
+  }, [user])
+
+  // 🔹 Salvar automaticamente (apenas depois de carregar)
   useEffect(() => {
-    const data = {
-      income,
-      investment,
-      installments,
-      cardLimit,
-      fixedExpenses
+    if (!user || !isLoaded) return
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
     }
 
-    localStorage.setItem("financeData", JSON.stringify(data))
-  }, [income, investment, installments, cardLimit, fixedExpenses])
+    async function saveData() {
+      const { error } = await supabase
+        .from("finance_data")
+        .upsert(
+          {
+            user_id: user.id,
+            income,
+            investment,
+            installments,
+            fixed_expenses: fixedExpenses,
+            card_limit: cardLimit
+          },
+          { onConflict: "user_id" }
+        )
+
+      if (error) {
+        console.log("ERRO SALVAR:", error)
+      }
+    }
+
+    saveData()
+
+  }, [income, investment, installments, fixedExpenses, cardLimit, user, isLoaded])
 
   function handleReset() {
-    localStorage.removeItem("financeData")
     setIncome(0)
     setInvestment(0)
     setInstallments([])
@@ -53,15 +97,18 @@ function App() {
     setFixedExpenses([])
   }
 
+  if (loading) return null
+  if (!user) return <Login />
+
   return (
     <div className="min-h-screen bg-[#f2f2f7] pt-20 px-4">
       <TopBar onReset={handleReset} />
 
       <div className="max-w-md mx-auto space-y-6 pb-10">
 
-        <IncomeCard setIncome={setIncome} />
+        <IncomeCard income={income} setIncome={setIncome} />
 
-        <InvestmentCard setInvestment={setInvestment} />
+        <InvestmentCard investment={investment} setInvestment={setInvestment} />
 
         <CardLimitCard
           cardLimit={cardLimit}
@@ -91,8 +138,6 @@ function App() {
           installments={installments}
           fixedExpenses={fixedExpenses}
         />
-
-
 
       </div>
     </div>
