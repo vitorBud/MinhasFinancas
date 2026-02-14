@@ -97,7 +97,8 @@ function App() {
     setFixedExpenses([])
   }
 
-  if (loading) return null
+  if (loading) return <p>Carregando...</p>
+
   if (!user) return <Login />
 
   return (
