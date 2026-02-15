@@ -146,19 +146,20 @@ function App() {
       {/* Glow Background */}
       <div
         className="
-          absolute
-          top-[-200px]
-          left-1/2
-          -translate-x-1/2
-          w-[600px]
-          h-[600px]
-          bg-blue-500/20
-          blur-[120px]
-          rounded-full
-          dark:bg-blue-600/20
-          pointer-events-none
-        "
+        absolute
+        top-[-120px]
+        left-1/2
+        -translate-x-1/2
+        w-[320px] sm:w-[500px] md:w-[600px]
+        h-[320px] sm:h-[500px] md:h-[600px]
+        bg-blue-500/20
+        blur-[120px]
+        rounded-full
+        dark:bg-blue-600/20
+        pointer-events-none
+      "
       />
+
 
       <TopBar
         onReset={handleReset}
@@ -166,7 +167,7 @@ function App() {
         setDarkMode={setDarkMode}
       />
 
-      <div className="w-full mx-auto space-y-6 pb-16 relative z-10">
+      <div className=" max-w-md mx-auto space-y-6 pb-16 relative z-10">
 
         <IncomeCard income={income} setIncome={setIncome} />
 
