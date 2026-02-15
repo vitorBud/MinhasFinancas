@@ -7,6 +7,7 @@ import InstallmentsCard from "./components/InstallmentsCard"
 import FixedExpensesCard from "./components/FixedExpensesCard"
 import CreditLimitBasedOnIncome from "./components/CreditLimitBasedOnIncome"
 import SummaryCard from "./components/SummaryCard"
+import AssistantModal from "./components/AssistantModal"
 import { supabase } from "./lib/supabase"
 import { useAuth } from "./context/AuthContext"
 import Login from "./pages/Login"
@@ -17,7 +18,7 @@ function App() {
   const { user, loading } = useAuth()
 
   /* ===========================
-     THEME CONTROL (CORRETO)
+     THEME CONTROL
   ============================ */
 
   const [darkMode, setDarkMode] = useState(
@@ -25,12 +26,7 @@ function App() {
   )
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-
+    document.documentElement.classList.toggle("dark", darkMode)
     localStorage.setItem("theme", darkMode ? "dark" : "light")
   }, [darkMode])
 
@@ -43,6 +39,13 @@ function App() {
   const [installments, setInstallments] = useState([])
   const [cardLimit, setCardLimit] = useState(0)
   const [fixedExpenses, setFixedExpenses] = useState([])
+
+  /* ===========================
+     ASSISTANT STATES
+  ============================ */
+
+  const [dailyExpenses, setDailyExpenses] = useState([])
+  const [assistantOpen, setAssistantOpen] = useState(false)
 
   const [isLoaded, setIsLoaded] = useState(false)
   const isFirstRender = useRef(true)
@@ -59,14 +62,14 @@ function App() {
         .from("finance_data")
         .select("*")
         .eq("user_id", user.id)
+        .single()
 
-      if (data && data.length > 0) {
-        const finance = data[0]
-        setIncome(finance.income || 0)
-        setInvestment(finance.investment || 0)
-        setInstallments(finance.installments || [])
-        setFixedExpenses(finance.fixed_expenses || [])
-        setCardLimit(finance.card_limit || 0)
+      if (data) {
+        setIncome(Number(data.income) || 0)
+        setInvestment(Number(data.investment) || 0)
+        setInstallments(data.installments || [])
+        setFixedExpenses(data.fixed_expenses || [])
+        setCardLimit(Number(data.card_limit) || 0)
       }
 
       setIsLoaded(true)
@@ -93,18 +96,48 @@ function App() {
         .upsert(
           {
             user_id: user.id,
-            income,
-            investment,
+            income: Number(income) || 0,
+            investment: Number(investment) || 0,
             installments,
             fixed_expenses: fixedExpenses,
-            card_limit: cardLimit
+            card_limit: Number(cardLimit) || 0
           },
           { onConflict: "user_id" }
         )
     }
 
     saveData()
-  }, [income, investment, installments, fixedExpenses, cardLimit, user, isLoaded])
+  }, [
+    income,
+    investment,
+    installments,
+    fixedExpenses,
+    cardLimit,
+    user,
+    isLoaded
+  ])
+
+  /* ===========================
+     ASSISTANT CALCULATIONS
+  ============================ */
+
+  const totalManualSpent =
+    dailyExpenses.reduce((acc, item) => acc + item.value, 0)
+
+  const totalInstallmentsMonthly =
+    installments.reduce((acc, item) => acc + Number(item.value || 0), 0)
+
+  const totalFixed =
+    fixedExpenses.reduce((acc, item) => acc + Number(item.value || 0), 0)
+
+  const maxByIncome =
+    Number(income || 0) - Number(investment || 0) - totalFixed
+
+  const realMaxAllowed =
+    Math.min(maxByIncome, Number(cardLimit || 0))
+
+  const remainingAfterManual =
+    realMaxAllowed - totalInstallmentsMonthly - totalManualSpent
 
   /* ===========================
      RESET
@@ -116,6 +149,7 @@ function App() {
     setInstallments([])
     setCardLimit(0)
     setFixedExpenses([])
+    setDailyExpenses([])
   }
 
   /* ===========================
@@ -123,7 +157,6 @@ function App() {
   ============================ */
 
   if (loading) return <LoadingScreen />
-
   if (!user) return <Login />
 
   /* ===========================
@@ -132,42 +165,41 @@ function App() {
 
   return (
     <div className="
-    min-h-screen
-    relative
-    pt-24
-    px-4
-    bg-slate-100
-    dark:bg-black
-    transition-colors duration-300
-  ">
-
-
+      min-h-screen
+      relative
+      pt-24
+      px-4
+      bg-slate-100
+      dark:bg-black
+      transition-colors duration-300
+    ">
 
       {/* Glow Background */}
       <div
         className="
-        absolute
-        top-[-120px]
-        left-1/2
-        -translate-x-1/2
-        w-[320px] sm:w-[500px] md:w-[600px]
-        h-[320px] sm:h-[500px] md:h-[600px]
-        bg-blue-500/20
-        blur-[120px]
-        rounded-full
-        dark:bg-blue-600/20
-        pointer-events-none
-      "
+          absolute
+          top-[-120px]
+          left-1/2
+          -translate-x-1/2
+          w-[320px] sm:w-[500px] md:w-[600px]
+          h-[320px] sm:h-[500px] md:h-[600px]
+          bg-blue-500/20
+          blur-[120px]
+          rounded-full
+          dark:bg-blue-600/20
+          pointer-events-none
+        "
       />
-
 
       <TopBar
         onReset={handleReset}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
+        onOpenAssistant={() => setAssistantOpen(true)}
       />
 
-      <div className=" max-w-md mx-auto space-y-6 pb-16 relative z-10">
+
+      <div className="max-w-md mx-auto space-y-6 pb-16 relative z-10">
 
         <IncomeCard income={income} setIncome={setIncome} />
 
@@ -203,9 +235,22 @@ function App() {
           investment={investment}
           installments={installments}
           fixedExpenses={fixedExpenses}
+          cardLimit={cardLimit}
         />
 
       </div>
+
+
+      {/* 🤖 MODAL */}
+      <AssistantModal
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        dailyExpenses={dailyExpenses}
+        setDailyExpenses={setDailyExpenses}
+        totalManualSpent={totalManualSpent}
+        remainingAfterManual={remainingAfterManual}
+      />
+
     </div>
   )
 }

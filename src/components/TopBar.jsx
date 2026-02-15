@@ -1,23 +1,28 @@
 import { supabase } from "../lib/supabase"
 
-function TopBar({ onReset, darkMode, setDarkMode }) {
+function TopBar({
+  onReset,
+  darkMode,
+  setDarkMode,
+  onOpenAssistant
+}) {
 
   async function handleLogout() {
     await supabase.auth.signOut()
   }
 
   return (
-    <div className="fixed top-3 left-5 right-2 z-40 flex justify-center ">
+    <div className="fixed top-3 left-5 right-5 z-40 flex justify-center">
 
       <div
         className="
-        
+          w-full max-w-md
           backdrop-blur-xl
           bg-white/70 dark:bg-slate-900/70
           border border-slate-200 dark:border-slate-700
           shadow-lg dark:shadow-black/40
           rounded-2xl
-          px-4 py-4
+          px-4 py-3
           flex justify-between items-center
           transition-colors duration-300
         "
@@ -31,31 +36,32 @@ function TopBar({ onReset, darkMode, setDarkMode }) {
         {/* Actions */}
         <div className="flex items-center gap-4">
 
-          {/* Toggle Theme - Estilo Switch */}
+          {/* 🤖 Assistente */}
           <button
-            onClick={() => setDarkMode(prev => !prev)}
+            onClick={onOpenAssistant}
             className="
-              relative
-              w-11 h-6
-              bg-slate-300 dark:bg-slate-600
-              rounded-full
-              transition-colors duration-300
-              focus:outline-none
+              text-lg
+              hover:scale-110
+              active:scale-95
+              transition-transform
             "
           >
-            <span
-              className={`
-                absolute
-                top-1
-                left-1
-                w-4 h-4
-                bg-white
-                rounded-full
-                shadow
-                transition-transform duration-300
-                ${darkMode ? "translate-x-5" : ""}
-              `}
-            />
+            🤖
+          </button>
+
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="
+              text-sm
+              text-slate-500
+              dark:text-slate-400
+              hover:text-slate-800
+              dark:hover:text-slate-100
+              transition-colors
+            "
+          >
+            {darkMode ? "🌙" : "☀️"}
           </button>
 
           {/* Reset */}
