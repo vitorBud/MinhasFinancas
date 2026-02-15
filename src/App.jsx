@@ -166,7 +166,7 @@ function App() {
         setDarkMode={setDarkMode}
       />
 
-      <div className="max-w-md mx-auto space-y-6 pb-16 relative z-10">
+      <div className="w-full mx-auto space-y-6 pb-16 relative z-10">
 
         <IncomeCard income={income} setIncome={setIncome} />
 
