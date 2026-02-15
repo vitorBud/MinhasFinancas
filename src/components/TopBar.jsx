@@ -7,12 +7,12 @@ function TopBar({ onReset, darkMode, setDarkMode }) {
   }
 
   return (
-    <div className="fixed top-4 inset-x-0 z-50 flex justify-center px-4">
+    <div className="fixed top-3 inset-x-5 z-50 flex justify-center px-4 right-28 ">
 
       <div
         className="
           w-full
-          max-w-md
+          w
           backdrop-blur-xl
           bg-white/70 dark:bg-slate-900/70
           border border-slate-200 dark:border-slate-700
