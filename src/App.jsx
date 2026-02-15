@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import TopBar from "./components/TopBar"
 import IncomeCard from "./components/IncomeCard"
 import InvestmentCard from "./components/InvestmentCard"
@@ -7,252 +7,109 @@ import InstallmentsCard from "./components/InstallmentsCard"
 import FixedExpensesCard from "./components/FixedExpensesCard"
 import CreditLimitBasedOnIncome from "./components/CreditLimitBasedOnIncome"
 import SummaryCard from "./components/SummaryCard"
-import AssistantModal from "./components/AssistantModal"
-import { supabase } from "./lib/supabase"
+import ChatAssistant from "./components/ChatAssistant" // Novo componente
+import { useFinance } from "./context/FinanceContext" // Usando o Contexto
 import { useAuth } from "./context/AuthContext"
 import Login from "./pages/Login"
 import LoadingScreen from "./components/LoadingScreen"
+import { FinanceProvider } from "./context/FinanceContext" 
+// ou o caminho correto onde você salvou o arquivo
 
-function App() {
-
+function AppContent() {
   const { user, loading } = useAuth()
-
-  /* ===========================
-     THEME CONTROL
-  ============================ */
-
+  const { data, setData, saveToDatabase, isLoaded } = useFinance()
+  
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("theme") === "dark"
   )
+  const [chatOpen, setChatOpen] = useState(false)
 
+  // Controle de Tema
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode)
     localStorage.setItem("theme", darkMode ? "dark" : "light")
   }, [darkMode])
 
-  /* ===========================
-     FINANCE STATES
-  ============================ */
-
-  const [income, setIncome] = useState(0)
-  const [investment, setInvestment] = useState(0)
-  const [installments, setInstallments] = useState([])
-  const [cardLimit, setCardLimit] = useState(0)
-  const [fixedExpenses, setFixedExpenses] = useState([])
-
-  /* ===========================
-     ASSISTANT STATES
-  ============================ */
-
-  const [dailyExpenses, setDailyExpenses] = useState([])
-  const [assistantOpen, setAssistantOpen] = useState(false)
-
-  const [isLoaded, setIsLoaded] = useState(false)
-  const isFirstRender = useRef(true)
-
-  /* ===========================
-     FETCH DATA
-  ============================ */
-
-  useEffect(() => {
-    if (!user) return
-
-    async function fetchData() {
-      const { data } = await supabase
-        .from("finance_data")
-        .select("*")
-        .eq("user_id", user.id)
-        .single()
-
-      if (data) {
-        setIncome(Number(data.income) || 0)
-        setInvestment(Number(data.investment) || 0)
-        setInstallments(data.installments || [])
-        setFixedExpenses(data.fixed_expenses || [])
-        setCardLimit(Number(data.card_limit) || 0)
-      }
-
-      setIsLoaded(true)
-    }
-
-    fetchData()
-  }, [user])
-
-  /* ===========================
-     AUTO SAVE
-  ============================ */
-
+  // Auto-save com Debounce (Evita excesso de chamadas ao Supabase)
   useEffect(() => {
     if (!user || !isLoaded) return
-
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
-
-    async function saveData() {
-      await supabase
-        .from("finance_data")
-        .upsert(
-          {
-            user_id: user.id,
-            income: Number(income) || 0,
-            investment: Number(investment) || 0,
-            installments,
-            fixed_expenses: fixedExpenses,
-            card_limit: Number(cardLimit) || 0
-          },
-          { onConflict: "user_id" }
-        )
-    }
-
-    saveData()
-  }, [
-    income,
-    investment,
-    installments,
-    fixedExpenses,
-    cardLimit,
-    user,
-    isLoaded
-  ])
-
-  /* ===========================
-     ASSISTANT CALCULATIONS
-  ============================ */
-
-  const totalManualSpent =
-    dailyExpenses.reduce((acc, item) => acc + item.value, 0)
-
-  const totalInstallmentsMonthly =
-    installments.reduce((acc, item) => acc + Number(item.value || 0), 0)
-
-  const totalFixed =
-    fixedExpenses.reduce((acc, item) => acc + Number(item.value || 0), 0)
-
-  const maxByIncome =
-    Number(income || 0) - Number(investment || 0) - totalFixed
-
-  const realMaxAllowed =
-    Math.min(maxByIncome, Number(cardLimit || 0))
-
-  const remainingAfterManual =
-    realMaxAllowed - totalInstallmentsMonthly - totalManualSpent
-
-  /* ===========================
-     RESET
-  ============================ */
-
-  function handleReset() {
-    setIncome(0)
-    setInvestment(0)
-    setInstallments([])
-    setCardLimit(0)
-    setFixedExpenses([])
-    setDailyExpenses([])
-  }
-
-  /* ===========================
-     LOADING
-  ============================ */
+    const timer = setTimeout(() => {
+      saveToDatabase()
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [data, user, isLoaded])
 
   if (loading) return <LoadingScreen />
   if (!user) return <Login />
 
-  /* ===========================
-     MAIN LAYOUT
-  ============================ */
-
   return (
-    <div className="
-      min-h-screen
-      relative
-      pt-24
-      px-4
-      bg-slate-100
-      dark:bg-black
-      transition-colors duration-300
-    ">
-
+    <div className="min-h-screen relative pt-24 px-4 bg-slate-100 dark:bg-black transition-colors duration-300">
+      
       {/* Glow Background */}
-      <div
-        className="
-          absolute
-          top-[-120px]
-          left-1/2
-          -translate-x-1/2
-          w-[320px] sm:w-[500px] md:w-[600px]
-          h-[320px] sm:h-[500px] md:h-[600px]
-          bg-blue-500/20
-          blur-[120px]
-          rounded-full
-          dark:bg-blue-600/20
-          pointer-events-none
-        "
-      />
+      <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[320px] sm:w-[600px] h-[320px] sm:h-[600px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
 
       <TopBar
-        onReset={handleReset}
+        onReset={() => setData({ income: 0, investment: 0, installments: [], fixedExpenses: [], cardLimit: 0, dailyExpenses: [] })}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
-        onOpenAssistant={() => setAssistantOpen(true)}
+        onOpenAssistant={() => setChatOpen(true)}
       />
 
-
-      <div className="max-w-md mx-auto space-y-6 pb-16 relative z-10">
-
-        <IncomeCard income={income} setIncome={setIncome} />
+      <div className="max-w-md mx-auto space-y-6 pb-24 relative z-10">
+        
+        <IncomeCard 
+          income={data.income} 
+          setIncome={(val) => setData(prev => ({ ...prev, income: val }))} 
+        />
 
         <InvestmentCard
-          investment={investment}
-          setInvestment={setInvestment}
+          investment={data.investment}
+          setInvestment={(val) => setData(prev => ({ ...prev, investment: val }))}
         />
 
         <CardLimitCard
-          cardLimit={cardLimit}
-          setCardLimit={setCardLimit}
+          cardLimit={data.cardLimit}
+          setCardLimit={(val) => setData(prev => ({ ...prev, cardLimit: val }))}
         />
 
         <InstallmentsCard
-          installments={installments}
-          setInstallments={setInstallments}
+          installments={data.installments}
+          setInstallments={(list) => setData(prev => ({ ...prev, installments: list }))}
         />
 
         <FixedExpensesCard
-          fixedExpenses={fixedExpenses}
-          setFixedExpenses={setFixedExpenses}
+          fixedExpenses={data.fixedExpenses}
+          setFixedExpenses={(list) => setData(prev => ({ ...prev, fixedExpenses: list }))}
         />
 
         <SummaryCard
-          income={income}
-          investment={investment}
-          installments={installments}
-          fixedExpenses={fixedExpenses}
+          income={data.income}
+          investment={data.investment}
+          installments={data.installments}
+          fixedExpenses={data.fixedExpenses}
         />
 
         <CreditLimitBasedOnIncome
-          income={income}
-          investment={investment}
-          installments={installments}
-          fixedExpenses={fixedExpenses}
-          cardLimit={cardLimit}
+          income={data.income}
+          investment={data.investment}
+          installments={data.installments}
+          fixedExpenses={data.fixedExpenses}
+          cardLimit={data.cardLimit}
         />
-
       </div>
 
-
-      {/* 🤖 MODAL */}
-      <AssistantModal
-        open={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-        dailyExpenses={dailyExpenses}
-        setDailyExpenses={setDailyExpenses}
-        totalManualSpent={totalManualSpent}
-        remainingAfterManual={remainingAfterManual}
-      />
+      {/* 🤖 NOVA TELA DE CHAT IA */}
+      {chatOpen && <ChatAssistant onClose={() => setChatOpen(false)} />}
 
     </div>
   )
 }
 
-export default App
+// O App precisa estar dentro do Provider
+export default function App() {
+  return (
+    <FinanceProvider>
+       <AppContent />
+    </FinanceProvider>
+  )
+}
