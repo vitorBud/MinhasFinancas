@@ -1,76 +1,120 @@
 function SummaryCard({
-  income,
-  investment,
-  installments,
-  fixedExpenses
+  income = 0,
+  investment = 0,
+  installments = [],
+  fixedExpenses = []
 }) {
 
   const totalInstallmentsMonthly =
-    installments.reduce((acc, item) => acc + item.value, 0)
+    installments.reduce((acc, item) => acc + Number(item.value || 0), 0)
 
   const totalFixed =
-    fixedExpenses.reduce((acc, item) => acc + item.value, 0)
+    fixedExpenses.reduce((acc, item) => acc + Number(item.value || 0), 0)
 
   const remaining =
     income - investment - totalInstallmentsMonthly - totalFixed
 
   const totalDebt =
-    installments.reduce((acc, item) => acc + (item.value * item.months), 0)
+    installments.reduce(
+      (acc, item) => acc + (Number(item.value || 0) * Number(item.months || 0)),
+      0
+    )
 
   const monthsLeft =
     installments.length > 0
-      ? Math.max(...installments.map(item => item.months))
+      ? Math.max(...installments.map(item => Number(item.months || 0)))
       : 0
 
+  const formatCurrency = (value) =>
+    value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    })
+
   return (
-    <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
-      <h2 className="text-base font-semibold">
+    <div
+      className="
+        bg-white
+        dark:bg-slate-900
+        border border-slate-200
+        dark:border-slate-700
+        shadow-sm
+        dark:shadow-black/40
+        rounded-2xl
+        p-6
+        space-y-5
+        transition-colors duration-300
+      "
+    >
+      <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 tracking-tight">
         📊 Resumo Mensal
       </h2>
 
-      <div className="text-sm space-y-2">
+      <div className="text-sm space-y-3">
 
-        <div className="flex justify-between">
-          <span>Salário</span>
-          <span>R$ {income}</span>
-        </div>
+        <Row label="Salário" value={formatCurrency(income)} positive />
 
-        <div className="flex justify-between">
-          <span>Investimento</span>
-          <span>R$ {investment}</span>
-        </div>
+        <Row label="Investimento" value={formatCurrency(investment)} />
 
-        <div className="flex justify-between">
-          <span>Parcelas (mensal)</span>
-          <span>R$ {totalInstallmentsMonthly}</span>
-        </div>
+        <Row label="Parcelas (mensal)" value={formatCurrency(totalInstallmentsMonthly)} />
 
-        <div className="flex justify-between">
-          <span>Gastos fixos</span>
-          <span>R$ {totalFixed}</span>
-        </div>
+        <Row label="Gastos fixos" value={formatCurrency(totalFixed)} />
 
-        <div className="border-t pt-2 flex justify-between font-semibold">
-          <span>Sobra</span>
-          <span className={remaining < 0 ? "text-red-500" : "text-blue-500"}>
-            R$ {remaining}
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-4 flex justify-between items-center">
+
+          <span className="text-slate-800 dark:text-slate-100 font-semibold">
+            Sobra
+          </span>
+
+          <span
+            className={`text-lg font-bold ${
+              remaining < 0
+                ? "text-red-500"
+                : "text-emerald-500"
+            }`}
+          >
+            {formatCurrency(remaining)}
           </span>
         </div>
       </div>
 
       {installments.length > 0 && (
-        <div className="text-sm border-t pt-3 space-y-2">
-          <div className="flex justify-between">
-            <span>Total dívida futura</span>
-            <span>R$ {totalDebt}</span>
-          </div>
+        <div className="text-sm border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
+
+          <Row label="Total dívida futura" value={formatCurrency(totalDebt)} />
 
           <div className="flex justify-between">
-            <span>Meses restantes</span>
-            <span>{monthsLeft}</span>
+            <span className="text-slate-500 dark:text-slate-400">
+              Meses restantes
+            </span>
+            <span className="font-medium text-slate-800 dark:text-slate-100">
+              {monthsLeft}
+            </span>
           </div>
+
         </div>
       )}
+    </div>
+  )
+}
+
+/* 🔥 Linha padronizada */
+function Row({ label, value, positive }) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+
+      <span
+        className={`font-medium ${
+          positive
+            ? "text-blue-500"
+            : "text-slate-800 dark:text-slate-100"
+        }`}
+      >
+        {value}
+      </span>
     </div>
   )
 }

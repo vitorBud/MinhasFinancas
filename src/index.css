@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 @layer base {
   * {
     margin: 0;
@@ -8,16 +7,13 @@
     box-sizing: border-box;
   }
 
-  body {
-    background-color: #f2f2f7;
-    color: #1c1c1e;
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-  }
-
-
-
   html {
     scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-100 dark:bg-black transition-colors duration-300;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
   }
 }
 
@@ -28,4 +24,27 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+}
+
+/* Se quiser manter glass-card antigo */
+.glass-card {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15);
+
+  border-radius: 24px;
+}
+
+html.dark .glass-card {
+  background: rgba(25, 25, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }

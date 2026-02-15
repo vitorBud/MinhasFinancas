@@ -1,18 +1,47 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
-function CardLimitCard({ setCardLimit }) {
+function CardLimitCard({ cardLimit, setCardLimit }) {
 
-  const [value, setValue] = useState("")
+  const [value, setValue] = useState(cardLimit || "")
+
+  /* 🔄 Sincroniza caso venha do banco */
+  useEffect(() => {
+    setValue(cardLimit || "")
+  }, [cardLimit])
 
   function handleChange(e) {
-    const number = Number(e.target.value)
-    setValue(number)
-    setCardLimit(number)
+    const raw = e.target.value
+
+    if (raw === "") {
+      setValue("")
+      setCardLimit(0)
+      return
+    }
+
+    const number = Number(raw)
+
+    if (!isNaN(number)) {
+      setValue(number)
+      setCardLimit(number)
+    }
   }
 
   return (
-    <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-3">
-      <h2 className="text-base font-semibold text-[#1c1c1e]">
+    <div
+      className="
+        bg-white
+        dark:bg-slate-900
+        border border-slate-200
+        dark:border-slate-700
+        shadow-sm
+        dark:shadow-black/40
+        rounded-2xl
+        p-6
+        space-y-4
+        transition-colors duration-300
+      "
+    >
+      <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 tracking-tight">
         💳 Limite do Cartão
       </h2>
 
@@ -21,8 +50,33 @@ function CardLimitCard({ setCardLimit }) {
         placeholder="Ex: 8000"
         value={value}
         onChange={handleChange}
-        className="w-full p-3 rounded-xl bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+        className="
+          w-full
+          px-4 py-3
+          rounded-xl
+          bg-slate-100
+          dark:bg-slate-800
+          border border-slate-300
+          dark:border-slate-600
+          text-slate-800
+          dark:text-slate-100
+          placeholder:text-slate-400
+          dark:placeholder:text-slate-500
+          focus:outline-none
+          focus:ring-2
+          focus:ring-blue-500
+          transition-all duration-200
+        "
       />
+
+      {cardLimit > 0 && (
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Limite atual:{" "}
+          <span className="font-medium text-slate-800 dark:text-slate-100">
+            R$ {cardLimit.toLocaleString("pt-BR")}
+          </span>
+        </p>
+      )}
     </div>
   )
 }

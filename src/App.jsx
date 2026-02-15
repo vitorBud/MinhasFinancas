@@ -10,10 +10,33 @@ import SummaryCard from "./components/SummaryCard"
 import { supabase } from "./lib/supabase"
 import { useAuth } from "./context/AuthContext"
 import Login from "./pages/Login"
+import LoadingScreen from "./components/LoadingScreen"
 
 function App() {
 
   const { user, loading } = useAuth()
+
+  /* ===========================
+     THEME CONTROL (CORRETO)
+  ============================ */
+
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem("theme") === "dark"
+  )
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
+
+    localStorage.setItem("theme", darkMode ? "dark" : "light")
+  }, [darkMode])
+
+  /* ===========================
+     FINANCE STATES
+  ============================ */
 
   const [income, setIncome] = useState(0)
   const [investment, setInvestment] = useState(0)
@@ -24,24 +47,21 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false)
   const isFirstRender = useRef(true)
 
-  // 🔹 Buscar dados do usuário
+  /* ===========================
+     FETCH DATA
+  ============================ */
+
   useEffect(() => {
     if (!user) return
 
     async function fetchData() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("finance_data")
         .select("*")
         .eq("user_id", user.id)
 
-      if (error && error.code !== "PGRST116") {
-        console.log("ERRO BUSCAR:", error)
-        return
-      }
-
       if (data && data.length > 0) {
         const finance = data[0]
-
         setIncome(finance.income || 0)
         setInvestment(finance.investment || 0)
         setInstallments(finance.installments || [])
@@ -49,14 +69,16 @@ function App() {
         setCardLimit(finance.card_limit || 0)
       }
 
-
       setIsLoaded(true)
     }
 
     fetchData()
   }, [user])
 
-  // 🔹 Salvar automaticamente (apenas depois de carregar)
+  /* ===========================
+     AUTO SAVE
+  ============================ */
+
   useEffect(() => {
     if (!user || !isLoaded) return
 
@@ -66,7 +88,7 @@ function App() {
     }
 
     async function saveData() {
-      const { error } = await supabase
+      await supabase
         .from("finance_data")
         .upsert(
           {
@@ -79,15 +101,14 @@ function App() {
           },
           { onConflict: "user_id" }
         )
-
-      if (error) {
-        console.log("ERRO SALVAR:", error)
-      }
     }
 
     saveData()
-
   }, [income, investment, installments, fixedExpenses, cardLimit, user, isLoaded])
+
+  /* ===========================
+     RESET
+  ============================ */
 
   function handleReset() {
     setIncome(0)
@@ -97,19 +118,62 @@ function App() {
     setFixedExpenses([])
   }
 
-  if (loading) return <p>Carregando...</p>
+  /* ===========================
+     LOADING
+  ============================ */
+
+  if (loading) return <LoadingScreen />
 
   if (!user) return <Login />
 
-  return (
-    <div className="min-h-screen bg-[#f2f2f7] pt-20 px-4">
-      <TopBar onReset={handleReset} />
+  /* ===========================
+     MAIN LAYOUT
+  ============================ */
 
-      <div className="max-w-md mx-auto space-y-6 pb-10">
+  return (
+    <div className="
+    min-h-screen
+    relative
+    pt-24
+    px-4
+    bg-slate-100
+    dark:bg-black
+    transition-colors duration-300
+  ">
+
+
+
+      {/* Glow Background */}
+      <div
+        className="
+          absolute
+          top-[-200px]
+          left-1/2
+          -translate-x-1/2
+          w-[600px]
+          h-[600px]
+          bg-blue-500/20
+          blur-[120px]
+          rounded-full
+          dark:bg-blue-600/20
+          pointer-events-none
+        "
+      />
+
+      <TopBar
+        onReset={handleReset}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
+
+      <div className="max-w-md mx-auto space-y-6 pb-16 relative z-10">
 
         <IncomeCard income={income} setIncome={setIncome} />
 
-        <InvestmentCard investment={investment} setInvestment={setInvestment} />
+        <InvestmentCard
+          investment={investment}
+          setInvestment={setInvestment}
+        />
 
         <CardLimitCard
           cardLimit={cardLimit}
