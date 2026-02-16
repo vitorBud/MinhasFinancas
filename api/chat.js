@@ -1,3 +1,9 @@
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -6,40 +12,27 @@ export default async function handler(req, res) {
   const { message, context } = req.body;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: context,
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `${context}\n\nUsuário: ${message}`,
-                },
-              ],
-            },
-          ],
-        }),
-      }
-    );
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+      temperature: 0.5,
+    });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Erro Gemini:", data);
-      return res.status(500).json({ error: data });
-    }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta";
+    const text = completion.choices[0].message.content;
 
     return res.status(200).json({ text });
 
   } catch (error) {
-    console.error("Erro geral:", error);
-    return res.status(500).json({ error: "Erro interno" });
+    console.error("Erro OpenAI:", error);
+    return res.status(500).json({ error: "Erro na OpenAI" });
   }
 }
