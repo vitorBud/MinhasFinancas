@@ -13,6 +13,8 @@ import { useAuth } from "./context/AuthContext"
 import Login from "./pages/Login"
 import LoadingScreen from "./components/LoadingScreen"
 import { FinanceProvider } from "./context/FinanceContext"
+import BillingDayCard from "./components/BillingDayCard"
+
 // ou o caminho correto onde você salvou o arquivo
 
 function AppContent() {
@@ -71,6 +73,7 @@ function AppContent() {
           setData({
             income: 0,
             investment: 0,
+            billingDay: 1,
             installments: [],
             fixedExpenses: [],
             cardLimit: 0,
@@ -90,6 +93,12 @@ function AppContent() {
             setData(prev => ({ ...prev, income: val }))
           }
         />
+
+        <BillingDayCard
+          billingDay={data.billingDay}
+          setBillingDay={(val) => setData(prev => ({ ...prev, billingDay: val }))}
+        />
+
 
         <InvestmentCard
           investment={data.investment}

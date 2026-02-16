@@ -102,56 +102,103 @@ function ChatAssistant({ onClose }) {
 
   const totalCardUsage = totalInstallments + totalDaily;
 
-  const maxByIncome =
-    data.income - data.investment - totalFixed;
+  const sobraReal =
+    data.income -
+    data.investment -
+    totalFixed -
+    totalInstallments -
+    totalDaily;
 
-  const realMaxAllowed =
-    Math.min(maxByIncome, data.cardLimit);
+  // ==========================
+  // CÁLCULO DE VIRADA DO CARTÃO
+  // ==========================
 
-  const remainingAvailable =
-    realMaxAllowed - totalCardUsage;
+  function calcularDiasRestantes() {
+    if (!data.billingDay) return 0;
+
+    const hoje = new Date();
+    const diaHoje = hoje.getDate();
+
+    let proximaVirada = new Date(
+      hoje.getFullYear(),
+      hoje.getMonth(),
+      data.billingDay
+    );
+
+    if (diaHoje >= data.billingDay) {
+      proximaVirada = new Date(
+        hoje.getFullYear(),
+        hoje.getMonth() + 1,
+        data.billingDay
+      );
+    }
+
+    const diff = proximaVirada - hoje;
+    const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+    return dias;
+  }
+
+  const diasRestantes = calcularDiasRestantes();
+
+  const gastoPorDia =
+    diasRestantes > 0 && sobraReal > 0
+      ? sobraReal / diasRestantes
+      : 0;
+
+  // ==========================
+  // RESUMO INTELIGENTE
+  // ==========================
 
   function gerarResumo() {
-    const sobraReal =
-      data.income -
-      data.investment -
-      totalFixed -
-      totalInstallments -
-      totalDaily;
-
     const alerta =
       sobraReal < 0
         ? `
 
-        🚨 ALERTA FINANCEIRO
+🚨 ALERTA FINANCEIRO
 
-        Você está gastando ${format(Math.abs(sobraReal))} a mais do que deveria.
+Você está gastando ${format(Math.abs(sobraReal))} a mais do que deveria.
 
-        Reveja seus gastos imediatamente.
-        `
+Reveja seus gastos imediatamente.
+`
+        : "";
+
+    const sugestao =
+      sobraReal > 0 && diasRestantes > 0
+        ? `
+
+📅 Até a virada do cartão (dia ${data.billingDay})
+
+Restam ${diasRestantes} dias.
+
+Você pode gastar aproximadamente:
+
+💰 ${format(gastoPorDia)} por dia
+`
         : "";
 
     return `
-        📊 Resumo
+📊 Resumo
 
-        Renda: ${format(data.income)}
-        Gastos totais: ${format(totalFixed + totalInstallments + totalDaily)}
-        Sobra: ${format(sobraReal)}
-        ${alerta}
-        `;
+Renda: ${format(data.income)}
+Gastos totais: ${format(totalFixed + totalInstallments + totalDaily)}
+Sobra: ${format(sobraReal)}
+${alerta}
+${sugestao}
+`;
   }
 
   function diagnostico() {
     return `
 💳 Diagnóstico
 
-Valor utilizável real: ${format(realMaxAllowed)}
 Uso atual no cartão: ${format(totalCardUsage)}
 
-${remainingAvailable < 0
-        ? `⚠️ Excedente: ${format(Math.abs(remainingAvailable))}`
-        : `✅ Ainda pode usar: ${format(remainingAvailable)}`
-      }
+${
+      sobraReal < 0
+        ? `⚠️ Você já ultrapassou seu limite ideal.`
+        : `✅ Situação sob controle.`
+    }
 `;
   }
 
@@ -190,12 +237,9 @@ ${remainingAvailable < 0
         </div>
       </div>
 
-      {/* CONTEÚDO */}
       <div className="flex-1 overflow-y-auto">
-
         <div className="max-w-md mx-auto px-5 py-6 space-y-6">
 
-          {/* Mensagens */}
           {messages.map((m, i) => {
             const isAlert = m.content.includes("ALERTA FINANCEIRO");
 
@@ -203,18 +247,17 @@ ${remainingAvailable < 0
               <div
                 key={i}
                 className={`p-4 rounded-2xl backdrop-blur-xl whitespace-pre-line text-sm shadow-lg
-      ${isAlert
+                ${
+                  isAlert
                     ? "bg-red-500/10 border border-red-500/40 text-red-600 dark:text-red-400"
                     : "bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/10"
-                  }`}
+                }`}
               >
                 {m.content}
               </div>
             );
           })}
 
-
-          {/* Botões */}
           <div className="space-y-3">
 
             <button
@@ -249,7 +292,6 @@ ${remainingAvailable < 0
             </button>
           </div>
 
-          {/* Formulário */}
           {showAddExpense && (
             <div className="p-4 rounded-2xl 
             backdrop-blur-xl
@@ -287,43 +329,6 @@ ${remainingAvailable < 0
               </button>
             </div>
           )}
-
-          {/* Histórico */}
-          <div className="space-y-3">
-
-            <h3 className="text-sm font-semibold text-slate-500 dark:text-white/60">
-              Histórico do Cartão
-            </h3>
-
-            {data.dailyExpenses.length === 0 && (
-              <p className="text-sm text-slate-400">
-                Nenhum gasto registrado.
-              </p>
-            )}
-
-            {data.dailyExpenses.map(item => (
-              <div
-                key={item.id}
-                className="p-4 rounded-2xl 
-                backdrop-blur-xl
-                bg-white/60 dark:bg-white/5
-                border border-black/5 dark:border-white/10
-                flex justify-between items-center shadow"
-              >
-                <div>
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-slate-500 dark:text-white/50">
-                    {format(item.value)}
-                  </p>
-                </div>
-
-                <div className="flex gap-3 text-lg">
-                  <button onClick={() => handleEdit(item)}>✏️</button>
-                  <button onClick={() => handleRemove(item.id)}>🗑️</button>
-                </div>
-              </div>
-            ))}
-          </div>
 
           <div ref={scrollRef} />
 

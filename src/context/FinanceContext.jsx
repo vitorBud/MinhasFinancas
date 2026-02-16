@@ -11,6 +11,7 @@ export function FinanceProvider({ children }) {
     income: 0,
     investment: 0,
     cardLimit: 0,
+    billingDay: 1, // 🔥 ADICIONADO
     installments: [],
     fixedExpenses: [],
     dailyExpenses: []
@@ -29,7 +30,7 @@ export function FinanceProvider({ children }) {
         .from("finance_data")
         .select("*")
         .eq("user_id", user.id)
-        .maybeSingle(); // <- melhor que single()
+        .maybeSingle();
 
       if (error) {
         console.error("Erro ao carregar:", error);
@@ -40,6 +41,7 @@ export function FinanceProvider({ children }) {
           income: Number(dbData.income) || 0,
           investment: Number(dbData.investment) || 0,
           cardLimit: Number(dbData.card_limit) || 0,
+          billingDay: Number(dbData.billing_day) || 1,
           installments: dbData.installments || [],
           fixedExpenses: dbData.fixed_expenses || [],
           dailyExpenses: dbData.daily_expenses || []
@@ -53,7 +55,7 @@ export function FinanceProvider({ children }) {
   }, [user]);
 
   // =========================
-  // SALVAR DADOS (UPSERT CORRETO)
+  // SALVAR DADOS
   // =========================
   async function saveToDatabase() {
     if (!user) return;
@@ -66,12 +68,13 @@ export function FinanceProvider({ children }) {
           income: data.income,
           investment: data.investment,
           card_limit: data.cardLimit,
+          billing_day: data.billingDay,
           installments: data.installments,
           fixed_expenses: data.fixedExpenses,
           daily_expenses: data.dailyExpenses
         },
         {
-          onConflict: "user_id" // 🔥 ESSENCIAL
+          onConflict: "user_id"
         }
       );
 
