@@ -194,11 +194,10 @@ ${sugestao}
 
 Uso atual no cartão: ${format(totalCardUsage)}
 
-${
-      sobraReal < 0
+${sobraReal < 0
         ? `⚠️ Você já ultrapassou seu limite ideal.`
         : `✅ Situação sob controle.`
-    }
+      }
 `;
   }
 
@@ -247,11 +246,10 @@ ${
               <div
                 key={i}
                 className={`p-4 rounded-2xl backdrop-blur-xl whitespace-pre-line text-sm shadow-lg
-                ${
-                  isAlert
+                ${isAlert
                     ? "bg-red-500/10 border border-red-500/40 text-red-600 dark:text-red-400"
                     : "bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/10"
-                }`}
+                  }`}
               >
                 {m.content}
               </div>
@@ -329,6 +327,42 @@ ${
               </button>
             </div>
           )}
+
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-500 dark:text-white/60">
+              Histórico do Cartão
+            </h3>
+
+            {data.dailyExpenses.length === 0 && (
+              <p className="text-sm text-slate-400">
+                Nenhum gasto registrado.
+              </p>
+            )}
+
+            {data.dailyExpenses.map(item => (
+              <div
+                key={item.id}
+                className="p-4 rounded-2xl 
+      backdrop-blur-xl
+      bg-white/60 dark:bg-white/5
+      border border-black/5 dark:border-white/10
+      flex justify-between items-center shadow"
+              >
+                <div>
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-slate-500 dark:text-white/50">
+                    {format(item.value)}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 text-lg">
+                  <button onClick={() => handleEdit(item)}>✏️</button>
+                  <button onClick={() => handleRemove(item.id)}>🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
 
           <div ref={scrollRef} />
 

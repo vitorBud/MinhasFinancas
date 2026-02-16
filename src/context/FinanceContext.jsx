@@ -11,13 +11,21 @@ export function FinanceProvider({ children }) {
     income: 0,
     investment: 0,
     cardLimit: 0,
-    billingDay: 1, // 🔥 ADICIONADO
+    billingDay: 1,
     installments: [],
     fixedExpenses: [],
     dailyExpenses: []
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // 🔥 FUNÇÃO QUE GARANTE ARRAY SEMPRE
+  function normalizeArray(field) {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    if (typeof field === "object") return Object.values(field);
+    return [];
+  }
 
   // =========================
   // CARREGAR DADOS
@@ -42,9 +50,10 @@ export function FinanceProvider({ children }) {
           investment: Number(dbData.investment) || 0,
           cardLimit: Number(dbData.card_limit) || 0,
           billingDay: Number(dbData.billing_day) || 1,
-          installments: dbData.installments || [],
-          fixedExpenses: dbData.fixed_expenses || [],
-          dailyExpenses: dbData.daily_expenses || []
+
+          installments: normalizeArray(dbData.installments),
+          fixedExpenses: normalizeArray(dbData.fixed_expenses),
+          dailyExpenses: normalizeArray(dbData.daily_expenses)
         });
       }
 
