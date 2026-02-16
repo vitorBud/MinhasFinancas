@@ -9,6 +9,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  console.log("API KEY EXISTS?", !!process.env.OPENAI_API_KEY);
+
+
   const { message, context } = req.body;
 
   try {
