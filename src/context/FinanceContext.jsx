@@ -6,6 +6,7 @@ const FinanceContext = createContext();
 
 export function FinanceProvider({ children }) {
   const { user } = useAuth();
+
   const [data, setData] = useState({
     income: 0,
     investment: 0,
@@ -15,32 +16,79 @@ export function FinanceProvider({ children }) {
     dailyExpenses: []
   });
 
-  // Carregar dados iniciais
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // =========================
+  // CARREGAR DADOS
+  // =========================
   useEffect(() => {
     if (!user) return;
-    async function fetchFinance() {
-      const { data: dbData } = await supabase
+
+    async function loadData() {
+      const { data: dbData, error } = await supabase
         .from("finance_data")
         .select("*")
         .eq("user_id", user.id)
-        .single();
-      
+        .maybeSingle(); // <- melhor que single()
+
+      if (error) {
+        console.error("Erro ao carregar:", error);
+      }
+
       if (dbData) {
         setData({
-          income: Number(dbData.income),
-          investment: Number(dbData.investment),
-          cardLimit: Number(dbData.card_limit),
+          income: Number(dbData.income) || 0,
+          investment: Number(dbData.investment) || 0,
+          cardLimit: Number(dbData.card_limit) || 0,
           installments: dbData.installments || [],
           fixedExpenses: dbData.fixed_expenses || [],
           dailyExpenses: dbData.daily_expenses || []
         });
       }
+
+      setIsLoaded(true);
     }
-    fetchFinance();
+
+    loadData();
   }, [user]);
 
+  // =========================
+  // SALVAR DADOS (UPSERT CORRETO)
+  // =========================
+  async function saveToDatabase() {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("finance_data")
+      .upsert(
+        {
+          user_id: user.id,
+          income: data.income,
+          investment: data.investment,
+          card_limit: data.cardLimit,
+          installments: data.installments,
+          fixed_expenses: data.fixedExpenses,
+          daily_expenses: data.dailyExpenses
+        },
+        {
+          onConflict: "user_id" // 🔥 ESSENCIAL
+        }
+      );
+
+    if (error) {
+      console.error("Erro ao salvar:", error);
+    }
+  }
+
   return (
-    <FinanceContext.Provider value={{ data, setData }}>
+    <FinanceContext.Provider
+      value={{
+        data,
+        setData,
+        saveToDatabase,
+        isLoaded
+      }}
+    >
       {children}
     </FinanceContext.Provider>
   );

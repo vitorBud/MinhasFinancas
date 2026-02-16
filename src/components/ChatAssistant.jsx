@@ -7,199 +7,326 @@ function ChatAssistant({ onClose }) {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content:
-        "Olá! Sou seu assistente inteligente. Pode me contar seus gastos ou pedir um resumo da sua conta."
+      content: "Olá 👋 O que você deseja fazer?"
     }
   ]);
 
-  const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [category, setCategory] = useState("");
+  const [value, setValue] = useState("");
+  const [editingId, setEditingId] = useState(null);
+
   const scrollRef = useRef(null);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, showAddExpense]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+  const format = (v) =>
+    Number(v || 0).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    });
 
-    const userMsg = input.trim();
-    setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
-    setIsTyping(true);
+  // ==========================
+  // ADICIONAR / EDITAR
+  // ==========================
 
-    const totalFixed = data.fixedExpenses.reduce(
-      (acc, i) => acc + (Number(i.value) || 0),
-      0
-    );
+  function handleAddOrEditExpense() {
+    if (!category || !value) return;
 
-    const totalInstallments = data.installments.reduce(
-      (acc, i) => acc + (Number(i.value) || 0),
-      0
-    );
+    const numberValue = Number(value);
+    if (numberValue <= 0) return;
 
-    const totalDaily = data.dailyExpenses.reduce(
-      (acc, i) => acc + (Number(i.value) || 0),
-      0
-    );
+    if (editingId) {
+      setData(prev => ({
+        ...prev,
+        dailyExpenses: prev.dailyExpenses.map(item =>
+          item.id === editingId
+            ? { ...item, name: category, value: numberValue }
+            : item
+        )
+      }));
+      setEditingId(null);
+    } else {
+      setData(prev => ({
+        ...prev,
+        dailyExpenses: [
+          ...prev.dailyExpenses,
+          {
+            id: Date.now(),
+            name: category,
+            value: numberValue
+          }
+        ]
+      }));
+    }
 
-    const sobraAtual =
+    setCategory("");
+    setValue("");
+    setShowAddExpense(false);
+  }
+
+  function handleRemove(id) {
+    setData(prev => ({
+      ...prev,
+      dailyExpenses: prev.dailyExpenses.filter(item => item.id !== id)
+    }));
+  }
+
+  function handleEdit(item) {
+    setEditingId(item.id);
+    setCategory(item.name);
+    setValue(item.value);
+    setShowAddExpense(true);
+  }
+
+  // ==========================
+  // CÁLCULOS
+  // ==========================
+
+  const totalFixed = data.fixedExpenses.reduce(
+    (acc, i) => acc + Number(i.value || 0),
+    0
+  );
+
+  const totalInstallments = data.installments.reduce(
+    (acc, i) => acc + Number(i.value || 0),
+    0
+  );
+
+  const totalDaily = data.dailyExpenses.reduce(
+    (acc, i) => acc + Number(i.value || 0),
+    0
+  );
+
+  const totalCardUsage = totalInstallments + totalDaily;
+
+  const maxByIncome =
+    data.income - data.investment - totalFixed;
+
+  const realMaxAllowed =
+    Math.min(maxByIncome, data.cardLimit);
+
+  const remainingAvailable =
+    realMaxAllowed - totalCardUsage;
+
+  function gerarResumo() {
+    const sobraReal =
       data.income -
       data.investment -
       totalFixed -
       totalInstallments -
       totalDaily;
 
-    const promptContext = `
-Você é um assistente financeiro.
-Dados atuais:
-Renda: R$${data.income}
-Gastos Totais: R$${totalFixed + totalInstallments + totalDaily}
-Sobra Atual: R$${sobraAtual}
+    const alerta =
+      sobraReal < 0
+        ? `
 
-Regras:
-1. Ignore erros de digitação.
-2. Responda de forma curta e amigável.
-3. Se o usuário informar um gasto, termine com [GASTO:valor].
+        🚨 ALERTA FINANCEIRO
+
+        Você está gastando ${format(Math.abs(sobraReal))} a mais do que deveria.
+
+        Reveja seus gastos imediatamente.
+        `
+        : "";
+
+    return `
+        📊 Resumo
+
+        Renda: ${format(data.income)}
+        Gastos totais: ${format(totalFixed + totalInstallments + totalDaily)}
+        Sobra: ${format(sobraReal)}
+        ${alerta}
+        `;
+  }
+
+  function diagnostico() {
+    return `
+💳 Diagnóstico
+
+Valor utilizável real: ${format(realMaxAllowed)}
+Uso atual no cartão: ${format(totalCardUsage)}
+
+${remainingAvailable < 0
+        ? `⚠️ Excedente: ${format(Math.abs(remainingAvailable))}`
+        : `✅ Ainda pode usar: ${format(remainingAvailable)}`
+      }
 `;
+  }
 
-    try {
-      // 🔒 Agora chama sua API interna segura
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: userMsg,
-          context: promptContext
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Erro na API");
-      }
-
-      const responseText = result.text;
-
-      // Extrair gasto
-      const gastoMatch = responseText.match(/\[GASTO:(\d+\.?\d*)\]/);
-
-      if (gastoMatch) {
-        const valorGasto = parseFloat(gastoMatch[1]);
-
-        setData((prev) => ({
-          ...prev,
-          dailyExpenses: [
-            ...prev.dailyExpenses,
-            {
-              id: Date.now(),
-              value: valorGasto,
-              name: `IA: ${userMsg.substring(0, 15)}`
-            }
-          ]
-        }));
-      }
-
-      const cleanText = responseText.replace(/\[GASTO:.*?\]/g, "").trim();
-
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: cleanText }
-      ]);
-    } catch (err) {
-      console.error("Erro:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Não consegui processar agora. Verifique sua conexão."
-        }
-      ]);
-    } finally {
-      setIsTyping(false);
-    }
-  };
+  // ==========================
+  // UI
+  // ==========================
 
   return (
-    <div className="fixed inset-0 w-screen h-screen z-50 bg-slate-100 dark:bg-black flex flex-col">
+    <div className="min-h-screen flex flex-col 
+    bg-gradient-to-br 
+    from-slate-100 via-white to-slate-200
+    dark:from-slate-950 dark:via-slate-900 dark:to-black
+    text-slate-900 dark:text-white">
 
       {/* HEADER */}
-      <div className="p-4 border-b dark:border-slate-800 flex items-center gap-4 bg-white dark:bg-slate-900 shadow-sm">
-        <button
-          onClick={onClose}
-          className="text-2xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-        >
-          ←
-        </button>
+      <div className="sticky top-0 z-20 
+      backdrop-blur-xl bg-white/40 dark:bg-white/5 
+      border-b border-black/5 dark:border-white/10">
 
-        <div className="flex flex-col">
-          <h2 className="font-bold text-slate-800 dark:text-slate-100">
-            Assistente IA
-          </h2>
+        <div className="max-w-md mx-auto px-5 py-4 flex items-center gap-4">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition"
+          >
+            ←
+          </button>
 
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-xs text-emerald-500 font-medium">
-              Inteligência Ativa
-            </span>
+          <div>
+            <h2 className="font-semibold tracking-tight">
+              Assistente Financeiro
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-white/50">
+              Controle inteligente do seu cartão
+            </p>
           </div>
         </div>
       </div>
 
-      {/* MENSAGENS */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-black/20">
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`flex ${
-              m.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
-                m.role === "user"
-                  ? "bg-blue-600 text-white rounded-tr-none"
-                  : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border dark:border-slate-700 rounded-tl-none"
-              }`}
+      {/* CONTEÚDO */}
+      <div className="flex-1 overflow-y-auto">
+
+        <div className="max-w-md mx-auto px-5 py-6 space-y-6">
+
+          {/* Mensagens */}
+          {messages.map((m, i) => {
+            const isAlert = m.content.includes("ALERTA FINANCEIRO");
+
+            return (
+              <div
+                key={i}
+                className={`p-4 rounded-2xl backdrop-blur-xl whitespace-pre-line text-sm shadow-lg
+      ${isAlert
+                    ? "bg-red-500/10 border border-red-500/40 text-red-600 dark:text-red-400"
+                    : "bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/10"
+                  }`}
+              >
+                {m.content}
+              </div>
+            );
+          })}
+
+
+          {/* Botões */}
+          <div className="space-y-3">
+
+            <button
+              onClick={() =>
+                setMessages(prev => [...prev, { role: "assistant", content: gerarResumo() }])
+              }
+              className="w-full py-3 rounded-2xl font-medium
+              bg-gradient-to-r from-blue-600 to-indigo-600
+              text-white shadow-lg hover:scale-[1.02] transition"
             >
-              <p className="text-sm leading-relaxed">{m.content}</p>
+              📊 Ver Resumo
+            </button>
+
+            <button
+              onClick={() =>
+                setMessages(prev => [...prev, { role: "assistant", content: diagnostico() }])
+              }
+              className="w-full py-3 rounded-2xl font-medium
+              bg-gradient-to-r from-violet-600 to-purple-600
+              text-white shadow-lg hover:scale-[1.02] transition"
+            >
+              💳 Diagnóstico
+            </button>
+
+            <button
+              onClick={() => setShowAddExpense(!showAddExpense)}
+              className="w-full py-3 rounded-2xl font-medium
+              bg-gradient-to-r from-emerald-500 to-teal-500
+              text-white shadow-lg hover:scale-[1.02] transition"
+            >
+              ➕ Adicionar Gasto no Cartão
+            </button>
+          </div>
+
+          {/* Formulário */}
+          {showAddExpense && (
+            <div className="p-4 rounded-2xl 
+            backdrop-blur-xl
+            bg-white/60 dark:bg-white/5
+            border border-black/5 dark:border-white/10
+            space-y-3">
+
+              <input
+                type="text"
+                placeholder="Categoria"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-3 rounded-xl 
+                bg-white dark:bg-slate-800
+                border border-black/5 dark:border-white/10"
+              />
+
+              <input
+                type="number"
+                placeholder="Valor"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="w-full p-3 rounded-xl 
+                bg-white dark:bg-slate-800
+                border border-black/5 dark:border-white/10"
+              />
+
+              <button
+                onClick={handleAddOrEditExpense}
+                className="w-full py-3 rounded-xl 
+                bg-emerald-500 hover:bg-emerald-600 
+                text-white font-medium transition"
+              >
+                {editingId ? "Salvar Alteração" : "Confirmar Gasto"}
+              </button>
             </div>
+          )}
+
+          {/* Histórico */}
+          <div className="space-y-3">
+
+            <h3 className="text-sm font-semibold text-slate-500 dark:text-white/60">
+              Histórico do Cartão
+            </h3>
+
+            {data.dailyExpenses.length === 0 && (
+              <p className="text-sm text-slate-400">
+                Nenhum gasto registrado.
+              </p>
+            )}
+
+            {data.dailyExpenses.map(item => (
+              <div
+                key={item.id}
+                className="p-4 rounded-2xl 
+                backdrop-blur-xl
+                bg-white/60 dark:bg-white/5
+                border border-black/5 dark:border-white/10
+                flex justify-between items-center shadow"
+              >
+                <div>
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-slate-500 dark:text-white/50">
+                    {format(item.value)}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 text-lg">
+                  <button onClick={() => handleEdit(item)}>✏️</button>
+                  <button onClick={() => handleRemove(item.id)}>🗑️</button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
 
-        {isTyping && (
-          <div className="flex gap-1.5 p-2 ml-2">
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-150" />
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-300" />
-          </div>
-        )}
+          <div ref={scrollRef} />
 
-        <div ref={scrollRef} />
-      </div>
-
-      {/* INPUT */}
-      <div className="p-4 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
-        <div className="w-full flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Gastei 30 reais..."
-            className="flex-1 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 outline-none text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isTyping}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 rounded-2xl font-bold active:scale-95 transition-all"
-          >
-            Enviar
-          </button>
         </div>
       </div>
     </div>

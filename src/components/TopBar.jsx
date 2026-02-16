@@ -50,7 +50,7 @@ function TopBar({
           </button>
 
           {/* Dark Mode Toggle */}
-          <button
+          {/* <button
             onClick={() => setDarkMode(!darkMode)}
             className="
               text-sm
@@ -62,7 +62,7 @@ function TopBar({
             "
           >
             {darkMode ? "🌙" : "☀️"}
-          </button>
+          </button> */}
 
           {/* Reset */}
           <button

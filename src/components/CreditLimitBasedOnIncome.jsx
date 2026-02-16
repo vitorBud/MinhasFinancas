@@ -3,8 +3,21 @@ function CreditLimitBasedOnIncome({
   investment = 0,
   installments = [],
   fixedExpenses = [],
+  dailyExpenses = [],
   cardLimit = 0
 }) {
+
+  // ========================
+  // NORMALIZAÇÃO
+  // ========================
+
+  const safeIncome = Number(income) || 0
+  const safeInvestment = Number(investment) || 0
+  const safeCardLimit = Number(cardLimit) || 0
+
+  // ========================
+  // CÁLCULOS
+  // ========================
 
   const totalInstallmentsMonthly =
     installments.reduce(
@@ -12,41 +25,43 @@ function CreditLimitBasedOnIncome({
       0
     )
 
+  const totalDaily =
+    dailyExpenses.reduce(
+      (acc, item) => acc + Number(item.value || 0),
+      0
+    )
+
+  const totalCardUsage = totalInstallmentsMonthly + totalDaily
+
   const totalFixed =
     fixedExpenses.reduce(
       (acc, item) => acc + Number(item.value || 0),
       0
     )
 
-  const safeIncome = Number(income) || 0
-  const safeInvestment = Number(investment) || 0
-  const safeCardLimit = Number(cardLimit) || 0
-
-  // 🔹 Capacidade de pagamento baseada na renda
   const maxByIncome =
     safeIncome - safeInvestment - totalFixed
 
-  // 🔹 Valor realmente utilizável (menor entre renda e limite)
   const realMaxAllowed =
-    Math.min(maxByIncome, safeCardLimit)
+    Math.max(0, Math.min(maxByIncome, safeCardLimit))
 
   const remainingAvailable =
-    realMaxAllowed - totalInstallmentsMonthly
+    realMaxAllowed - totalCardUsage
 
   const usagePercent =
     safeCardLimit > 0
-      ? (totalInstallmentsMonthly / safeCardLimit) * 100
+      ? (totalCardUsage / safeCardLimit) * 100
       : 0
 
   const formatCurrency = (value) =>
-    value.toLocaleString("pt-BR", {
+    Number(value).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL"
     })
 
-  /* ===========================
-     DIAGNÓSTICO ADAPTATIVO
-  ============================ */
+  // ========================
+  // DIAGNÓSTICO
+  // ========================
 
   let message = ""
   let color = "text-emerald-500"
@@ -81,9 +96,9 @@ function CreditLimitBasedOnIncome({
     message = "Sua renda é o fator limitante, não o cartão."
   }
 
-  /* ===========================
-     RENDER
-  ============================ */
+  // ========================
+  // RENDER
+  // ========================
 
   if (safeIncome === 0) {
     return (
@@ -120,8 +135,8 @@ function CreditLimitBasedOnIncome({
         />
 
         <Row
-          label="Parcelas atuais"
-          value={formatCurrency(totalInstallmentsMonthly)}
+          label="Uso total no cartão"
+          value={formatCurrency(totalCardUsage)}
         />
 
         <div className="border-t border-slate-200 dark:border-slate-700 pt-4 flex justify-between items-center">
@@ -161,7 +176,7 @@ function CreditLimitBasedOnIncome({
   )
 }
 
-/* 🔹 Card base reutilizável */
+/* 🔹 Card base */
 function CardContainer({ children }) {
   return (
     <div className="

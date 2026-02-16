@@ -12,25 +12,29 @@ import { useFinance } from "./context/FinanceContext" // Usando o Contexto
 import { useAuth } from "./context/AuthContext"
 import Login from "./pages/Login"
 import LoadingScreen from "./components/LoadingScreen"
-import { FinanceProvider } from "./context/FinanceContext" 
+import { FinanceProvider } from "./context/FinanceContext"
 // ou o caminho correto onde você salvou o arquivo
 
 function AppContent() {
   const { user, loading } = useAuth()
   const { data, setData, saveToDatabase, isLoaded } = useFinance()
-  
+
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("theme") === "dark"
   )
   const [chatOpen, setChatOpen] = useState(false)
 
-  // Controle de Tema
+  // =============================
+  // CONTROLE DE TEMA
+  // =============================
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode)
     localStorage.setItem("theme", darkMode ? "dark" : "light")
   }, [darkMode])
 
-  // Auto-save com Debounce (Evita excesso de chamadas ao Supabase)
+  // =============================
+  // AUTO SAVE
+  // =============================
   useEffect(() => {
     if (!user || !isLoaded) return
     const timer = setTimeout(() => {
@@ -42,44 +46,77 @@ function AppContent() {
   if (loading) return <LoadingScreen />
   if (!user) return <Login />
 
+  // =============================
+  // 🔥 TROCA REAL DE TELA
+  // =============================
+  if (chatOpen) {
+    return (
+      <ChatAssistant
+        onClose={() => setChatOpen(false)}
+      />
+    )
+  }
+
+  // =============================
+  // TELA PRINCIPAL
+  // =============================
   return (
-    <div className="min-h-screen relative pt-24 px-4 bg-slate-100 dark:bg-black transition-colors duration-300">
-      
+    <div className="min-h-screen relative pt-24 px-4 bg-slate-100 dark:bg-black transition-colors duration-300 overflow-x-hidden">
+
       {/* Glow Background */}
       <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[320px] sm:w-[600px] h-[320px] sm:h-[600px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
 
       <TopBar
-        onReset={() => setData({ income: 0, investment: 0, installments: [], fixedExpenses: [], cardLimit: 0, dailyExpenses: [] })}
+        onReset={() =>
+          setData({
+            income: 0,
+            investment: 0,
+            installments: [],
+            fixedExpenses: [],
+            cardLimit: 0,
+            dailyExpenses: []
+          })
+        }
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         onOpenAssistant={() => setChatOpen(true)}
       />
 
       <div className="max-w-md mx-auto space-y-6 pb-24 relative z-10">
-        
-        <IncomeCard 
-          income={data.income} 
-          setIncome={(val) => setData(prev => ({ ...prev, income: val }))} 
+
+        <IncomeCard
+          income={data.income}
+          setIncome={(val) =>
+            setData(prev => ({ ...prev, income: val }))
+          }
         />
 
         <InvestmentCard
           investment={data.investment}
-          setInvestment={(val) => setData(prev => ({ ...prev, investment: val }))}
+          setInvestment={(val) =>
+            setData(prev => ({ ...prev, investment: val }))
+          }
         />
 
         <CardLimitCard
           cardLimit={data.cardLimit}
-          setCardLimit={(val) => setData(prev => ({ ...prev, cardLimit: val }))}
+          setCardLimit={(val) =>
+            setData(prev => ({ ...prev, cardLimit: val }))
+          }
         />
 
         <InstallmentsCard
           installments={data.installments}
-          setInstallments={(list) => setData(prev => ({ ...prev, installments: list }))}
+          setInstallments={(list) =>
+            setData(prev => ({ ...prev, installments: list }))
+          }
         />
 
         <FixedExpensesCard
           fixedExpenses={data.fixedExpenses}
-          setFixedExpenses={(list) => setData(prev => ({ ...prev, fixedExpenses: list }))}
+          setFixedExpenses={(list) =>
+            setData(prev => ({ ...prev, fixedExpenses: list }))
+          }
         />
 
         <SummaryCard
@@ -94,22 +131,20 @@ function AppContent() {
           investment={data.investment}
           installments={data.installments}
           fixedExpenses={data.fixedExpenses}
+          dailyExpenses={data.dailyExpenses}
           cardLimit={data.cardLimit}
         />
       </div>
-
-      {/* 🤖 NOVA TELA DE CHAT IA */}
-      {chatOpen && <ChatAssistant onClose={() => setChatOpen(false)} />}
-
     </div>
   )
 }
+
 
 // O App precisa estar dentro do Provider
 export default function App() {
   return (
     <FinanceProvider>
-       <AppContent />
+      <AppContent />
     </FinanceProvider>
   )
 }
