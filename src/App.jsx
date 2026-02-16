@@ -12,8 +12,8 @@ import { useFinance } from "./context/FinanceContext" // Usando o Contexto
 import { useAuth } from "./context/AuthContext"
 import Login from "./pages/Login"
 import LoadingScreen from "./components/LoadingScreen"
-import { FinanceProvider } from "./context/FinanceContext"
 import BillingDayCard from "./components/BillingDayCard"
+
 
 // ou o caminho correto onde você salvou o arquivo
 
@@ -151,9 +151,5 @@ function AppContent() {
 
 // O App precisa estar dentro do Provider
 export default function App() {
-  return (
-    <FinanceProvider>
-      <AppContent />
-    </FinanceProvider>
-  )
+  return <AppContent />
 }
