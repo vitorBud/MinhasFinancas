@@ -73,16 +73,25 @@ function AppContent() {
       <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[320px] sm:w-[600px] h-[320px] sm:h-[600px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
 
 
-      <div className="max-w-md mx-auto mb-6">
+      <div className="flex justify-center mb-6">
         <input
           type="month"
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="w-full px-3 py-3 rounded-xl
-              bg-slate-100 dark:bg-slate-800
-              border border-slate-200 dark:border-slate-700
-              text-sm text-slate-800 dark:text-white
-              focus:outline-none"
+          className="
+            w-44
+            sm:w-52
+            px-4 py-2
+            rounded-xl
+            bg-white dark:bg-slate-900
+            border border-slate-300 dark:border-slate-700
+            text-sm
+            text-slate-800 dark:text-slate-100
+            shadow-sm
+            focus:outline-none
+            focus:ring-2 focus:ring-blue-500
+            transition
+          "
         />
       </div>
 
