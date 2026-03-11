@@ -6,6 +6,9 @@ const FinanceContext = createContext();
 
 export function FinanceProvider({ children }) {
   const { user } = useAuth();
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7)
+  );
 
   const [data, setData] = useState({
     income: 0,
@@ -14,7 +17,8 @@ export function FinanceProvider({ children }) {
     billingDay: 1,
     installments: [],
     fixedExpenses: [],
-    dailyExpenses: []
+    dailyExpenses: [],
+    advancedPayments: []
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -31,17 +35,20 @@ export function FinanceProvider({ children }) {
   // CARREGAR DADOS
   // =========================
   useEffect(() => {
-    if (!user) return;
+    if (!user) return
 
     async function loadData() {
+
       const { data: dbData, error } = await supabase
-        .from("finance_data")
+        .from("finance_months")
         .select("*")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("month", selectedMonth)
+        .maybeSingle()
 
       if (error) {
-        console.error("Erro ao carregar:", error);
+        console.error("Erro ao carregar:", error)
+        return
       }
 
       if (dbData) {
@@ -50,45 +57,65 @@ export function FinanceProvider({ children }) {
           investment: Number(dbData.investment) || 0,
           cardLimit: Number(dbData.card_limit) || 0,
           billingDay: Number(dbData.billing_day) || 1,
-
           installments: normalizeArray(dbData.installments),
           fixedExpenses: normalizeArray(dbData.fixed_expenses),
-          dailyExpenses: normalizeArray(dbData.daily_expenses)
-        });
+          dailyExpenses: normalizeArray(dbData.daily_expenses),
+          advancedPayments: normalizeArray(dbData.advanced_payments)
+        })
+      } else {
+        // Se não existir, cria registro vazio
+        await supabase.from("finance_months").insert({
+          user_id: user.id,
+          month: selectedMonth
+        })
+
+        setData({
+          income: 0,
+          investment: 0,
+          cardLimit: 0,
+          billingDay: 1,
+          installments: [],
+          fixedExpenses: [],
+          dailyExpenses: [],
+          advancedPayments: []
+        })
       }
 
-      setIsLoaded(true);
+      setIsLoaded(true)
     }
 
-    loadData();
-  }, [user]);
+    loadData()
+
+  }, [user, selectedMonth])
 
   // =========================
   // SALVAR DADOS
   // =========================
   async function saveToDatabase() {
-    if (!user) return;
+    if (!user) return
 
     const { error } = await supabase
-      .from("finance_data")
+      .from("finance_months")
       .upsert(
         {
           user_id: user.id,
+          month: selectedMonth,
           income: data.income,
           investment: data.investment,
           card_limit: data.cardLimit,
           billing_day: data.billingDay,
           installments: data.installments,
           fixed_expenses: data.fixedExpenses,
-          daily_expenses: data.dailyExpenses
+          daily_expenses: data.dailyExpenses,
+          advanced_payments: data.advancedPayments
         },
         {
-          onConflict: "user_id"
+          onConflict: ["user_id", "month"]
         }
-      );
+      )
 
     if (error) {
-      console.error("Erro ao salvar:", error);
+      console.error("Erro ao salvar:", error)
     }
   }
 
@@ -98,7 +125,9 @@ export function FinanceProvider({ children }) {
         data,
         setData,
         saveToDatabase,
-        isLoaded
+        isLoaded,
+        selectedMonth,
+        setSelectedMonth
       }}
     >
       {children}

@@ -4,7 +4,8 @@ function CreditLimitBasedOnIncome({
   installments = [],
   fixedExpenses = [],
   dailyExpenses = [],
-  cardLimit = 0
+  cardLimit = 0,
+  advancedPayments = []
 }) {
 
   // ========================
@@ -25,13 +26,22 @@ function CreditLimitBasedOnIncome({
       0
     )
 
+  const totalAdvanced =
+    advancedPayments.reduce(
+      (acc, item) => acc + Number(item.value || 0),
+      0
+    )
+
   const totalDaily =
     dailyExpenses.reduce(
       (acc, item) => acc + Number(item.value || 0),
       0
     )
 
-  const totalCardUsage = totalInstallmentsMonthly + totalDaily
+  const adjustedInstallments =
+    Math.max(0, totalInstallmentsMonthly - totalAdvanced)
+
+  const totalCardUsage = adjustedInstallments + totalDaily
 
   const totalFixed =
     fixedExpenses.reduce(
@@ -146,11 +156,10 @@ function CreditLimitBasedOnIncome({
           </span>
 
           <span
-            className={`text-lg font-bold ${
-              remainingAvailable < 0
-                ? "text-red-500"
-                : "text-emerald-500"
-            }`}
+            className={`text-lg font-bold ${remainingAvailable < 0
+              ? "text-red-500"
+              : "text-emerald-500"
+              }`}
           >
             {formatCurrency(Math.abs(remainingAvailable))}
           </span>

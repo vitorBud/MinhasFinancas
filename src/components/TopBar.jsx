@@ -176,87 +176,111 @@ function TopBar({
             </button>
 
             {openMenu && (
-              <div className="absolute right-0 mt-3 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl p-5 space-y-4">
+              <div className="
+    absolute right-0 mt-3 w-80
+    backdrop-blur-xl
+    bg-white/80 dark:bg-slate-900/80
+    border border-slate-200 dark:border-slate-700
+    shadow-2xl dark:shadow-black/40
+    rounded-2xl
+    p-5
+    space-y-5
+    transition-all duration-200
+  ">
 
-                {/* Perfil */}
-                <div className="space-y-2">
+                {/* PERFIL */}
+                <div className="space-y-3">
+
                   {editingName ? (
-                    <>
+                    <div className="space-y-2">
                       <input
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        className="w-full p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm"
+                        className="
+              w-full px-3 py-2 rounded-xl
+              bg-slate-100 dark:bg-slate-800
+              border border-slate-200 dark:border-slate-700
+              text-sm text-slate-800 dark:text-white
+              focus:outline-none
+            "
                       />
                       <button
                         onClick={handleUpdateName}
-                        className="text-sm text-indigo-600"
+                        className="
+              w-full py-2 rounded-xl
+              bg-indigo-600 hover:bg-indigo-700
+              text-white text-sm font-medium
+              transition
+            "
                       >
-                        Salvar
+                        Salvar nome
                       </button>
-                    </>
+                    </div>
                   ) : (
                     <>
-                      <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                        {profile?.full_name || "Usuário"}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {user?.email}
-                      </p>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                          {profile?.full_name || "Usuário"}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {user?.email}
+                        </p>
+                      </div>
+
                       <button
                         onClick={() => setEditingName(true)}
-                        className="text-xs text-indigo-600"
+                        className="text-xs text-indigo-600 hover:text-indigo-500 transition"
                       >
                         Editar nome
                       </button>
                     </>
                   )}
+
                 </div>
 
                 <div className="border-t border-slate-200 dark:border-slate-700" />
 
-                {/* Upload foto */}
-                <button
-                  onClick={() => fileInputRef.current.click()}
-                  className="w-full text-left text-sm hover:text-indigo-600 transition"
-                >
-                  🖼 Alterar foto
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  hidden
-                  onChange={handleAvatarUpload}
-                />
+                {/* AÇÕES */}
+                <div className="space-y-2 text-sm">
 
-                {/* Tema */}
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="w-full text-left text-sm hover:text-indigo-600 transition"
-                >
-                  {darkMode ? "🌙 Modo Escuro" : "☀️ Modo Claro"}
-                </button>
+                  <MenuItem
+                    onClick={() => fileInputRef.current.click()}
+                    label="🖼 Alterar foto"
+                  />
 
-                {/* Reset senha */}
-                <button
-                  onClick={handleResetPassword}
-                  className="w-full text-left text-sm hover:text-blue-600 transition"
-                >
-                  🔐 Trocar senha
-                </button>
+                  <MenuItem
+                    onClick={() => setDarkMode(!darkMode)}
+                    label={darkMode ? "🌙 Modo Escuro" : "☀️ Modo Claro"}
+                  />
 
-                {/* Logout */}
+                  <MenuItem
+                    onClick={handleResetPassword}
+                    label="🔐 Trocar senha"
+                  />
+
+                </div>
+
+                <div className="border-t border-slate-200 dark:border-slate-700" />
+
+                {/* LOGOUT */}
                 <button
                   onClick={logout}
-                  className="w-full text-left text-sm text-red-500 hover:text-red-600 transition"
+                  className="
+        w-full py-2 rounded-xl
+        bg-red-500/10 hover:bg-red-500/20
+        text-red-500 font-medium
+        transition
+      "
                 >
-                  Sair
+                  Sair da conta
                 </button>
 
                 {loading && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 text-center">
                     Processando...
                   </p>
                 )}
+
               </div>
             )}
           </div>
@@ -264,6 +288,23 @@ function TopBar({
         </div>
       </div>
     </div>
+  )
+}
+
+function MenuItem({ onClick, label }) {
+  return (
+    <button
+      onClick={onClick}
+      className="
+        w-full text-left px-3 py-2
+        rounded-xl
+        text-slate-700 dark:text-slate-300
+        hover:bg-slate-100 dark:hover:bg-slate-800
+        transition
+      "
+    >
+      {label}
+    </button>
   )
 }
 

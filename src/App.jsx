@@ -13,6 +13,8 @@ import { useAuth } from "./context/AuthContext"
 import Login from "./pages/Login"
 import LoadingScreen from "./components/LoadingScreen"
 import BillingDayCard from "./components/BillingDayCard"
+import AdvancedPaymentsCard from "./context/AdvancedPaymentsCard"
+import MonthlySummaryCard from "./components/MonthlySummaryCard"
 
 
 // ou o caminho correto onde você salvou o arquivo
@@ -25,6 +27,7 @@ function AppContent() {
     localStorage.getItem("theme") === "dark"
   )
   const [chatOpen, setChatOpen] = useState(false)
+  const { selectedMonth, setSelectedMonth } = useFinance()
 
   // =============================
   // CONTROLE DE TEMA
@@ -63,10 +66,22 @@ function AppContent() {
   // TELA PRINCIPAL
   // =============================
   return (
+
     <div className="min-h-screen relative pt-24 px-4 bg-slate-100 dark:bg-black transition-colors duration-300 overflow-x-hidden">
 
       {/* Glow Background */}
       <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[320px] sm:w-[600px] h-[320px] sm:h-[600px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+
+      <div className="max-w-md mx-auto mb-6">
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl bg-white/60 dark:bg-white/10 border dark:border-white/10"
+        />
+      </div>
+
 
       <TopBar
         onReset={() =>
@@ -121,12 +136,21 @@ function AppContent() {
           }
         />
 
+        <AdvancedPaymentsCard
+          advancedPayments={data.advancedPayments}
+          setAdvancedPayments={(list) =>
+            setData(prev => ({ ...prev, advancedPayments: list }))
+          }
+        />
+
         <FixedExpensesCard
           fixedExpenses={data.fixedExpenses}
           setFixedExpenses={(list) =>
             setData(prev => ({ ...prev, fixedExpenses: list }))
           }
         />
+
+        <MonthlySummaryCard data={data} />
 
         <SummaryCard
           income={data.income}
@@ -142,6 +166,7 @@ function AppContent() {
           fixedExpenses={data.fixedExpenses}
           dailyExpenses={data.dailyExpenses}
           cardLimit={data.cardLimit}
+          advancedPayments={data.advancedPayments}
         />
       </div>
     </div>
