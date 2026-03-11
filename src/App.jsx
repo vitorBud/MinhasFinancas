@@ -78,7 +78,11 @@ function AppContent() {
           type="month"
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl bg-white/60 dark:bg-white/10 border dark:border-white/10"
+          className="w-full px-3 py-3 rounded-xl
+              bg-slate-100 dark:bg-slate-800
+              border border-slate-200 dark:border-slate-700
+              text-sm text-slate-800 dark:text-white
+              focus:outline-none"
         />
       </div>
 
