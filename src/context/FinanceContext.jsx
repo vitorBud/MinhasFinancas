@@ -19,14 +19,13 @@ export function FinanceProvider({ children }) {
     installments: [],
     fixedExpenses: [],
     dailyExpenses: [],
-    advancedPayments: []
+    advancedPayments: [],
+    simpleCurrentBill: 0,
+    simpleExtraExpenses: []
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // =========================
-  // NORMALIZADOR DE ARRAY
-  // =========================
   function normalizeArray(field) {
     if (!field) return [];
     if (Array.isArray(field)) return field;
@@ -35,7 +34,7 @@ export function FinanceProvider({ children }) {
   }
 
   // =========================
-  // CARREGAR DADOS POR MÊS
+  // CARREGAR POR MÊS
   // =========================
   useEffect(() => {
     if (!user) return;
@@ -52,6 +51,7 @@ export function FinanceProvider({ children }) {
 
       if (error) {
         console.error("Erro ao carregar:", error);
+        setIsLoaded(true);
         return;
       }
 
@@ -64,10 +64,11 @@ export function FinanceProvider({ children }) {
           installments: normalizeArray(dbData.installments),
           fixedExpenses: normalizeArray(dbData.fixed_expenses),
           dailyExpenses: normalizeArray(dbData.daily_expenses),
-          advancedPayments: normalizeArray(dbData.advanced_payments)
+          advancedPayments: normalizeArray(dbData.advanced_payments),
+          simpleCurrentBill: Number(dbData.simple_current_bill) || 0,
+          simpleExtraExpenses: normalizeArray(dbData.simple_extra_expenses)
         });
       } else {
-        // Cria registro vazio se não existir
         await supabase.from("finance_months").insert({
           user_id: user.id,
           month: selectedMonth
@@ -81,7 +82,9 @@ export function FinanceProvider({ children }) {
           installments: [],
           fixedExpenses: [],
           dailyExpenses: [],
-          advancedPayments: []
+          advancedPayments: [],
+          simpleCurrentBill: 0,
+          simpleExtraExpenses: []
         });
       }
 
@@ -89,11 +92,10 @@ export function FinanceProvider({ children }) {
     }
 
     loadData();
-
   }, [user, selectedMonth]);
 
   // =========================
-  // AUTO SAVE (SOMENTE QUANDO DATA MUDA)
+  // AUTO SAVE
   // =========================
   useEffect(() => {
     if (!user || !isLoaded) return;
@@ -103,11 +105,10 @@ export function FinanceProvider({ children }) {
     }, 800);
 
     return () => clearTimeout(timeout);
-
   }, [data]);
 
   // =========================
-  // SALVAR NO BANCO
+  // SALVAR
   // =========================
   async function saveToDatabase() {
     if (!user) return;
@@ -125,7 +126,9 @@ export function FinanceProvider({ children }) {
           installments: data.installments,
           fixed_expenses: data.fixedExpenses,
           daily_expenses: data.dailyExpenses,
-          advanced_payments: data.advancedPayments
+          advanced_payments: data.advancedPayments,
+          simple_current_bill: data.simpleCurrentBill,
+          simple_extra_expenses: data.simpleExtraExpenses
         },
         {
           onConflict: ["user_id", "month"]
