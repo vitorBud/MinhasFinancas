@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import RiskChart from "../components/RiskChart"
 
 function SimpleCalculator() {
 
@@ -100,6 +101,11 @@ function SimpleCalculator() {
 
                     </div>
 
+                    <RiskChart
+                        capacity={realLimit}
+                        currentBill={currentBill}
+                    />
+
                     {/* Barra visual */}
                     {realLimit > 0 && (
                         <div className="pt-4 space-y-2">
@@ -112,10 +118,10 @@ function SimpleCalculator() {
                             <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                 <div
                                     className={`h-full ${usagePercent < 50
-                                            ? "bg-emerald-500"
-                                            : usagePercent < 75
-                                                ? "bg-yellow-500"
-                                                : "bg-red-500"
+                                        ? "bg-emerald-500"
+                                        : usagePercent < 75
+                                            ? "bg-yellow-500"
+                                            : "bg-red-500"
                                         }`}
                                     style={{ width: `${Math.min(usagePercent, 100)}%` }}
                                 />
